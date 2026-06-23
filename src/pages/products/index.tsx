@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from "next/link";
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 interface review{
   rating:number,
@@ -40,6 +42,8 @@ interface IndexProps {
 }
 
 const index = ({ initialProducts, fetchError }: IndexProps) => {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   const [allProducts,setAllProducts]=useState<product[]>(initialProducts);
   const [products,setProducts]=useState<product[]>(initialProducts);
@@ -60,6 +64,10 @@ const index = ({ initialProducts, fetchError }: IndexProps) => {
 
 
   useEffect(()=>{
+    if (status !== "loading" && !session) {
+      router.push("/users/login");
+    }
+
     let filtered = [...allProducts];
 
     if(category !== 'all'){
@@ -75,7 +83,7 @@ const index = ({ initialProducts, fetchError }: IndexProps) => {
     }
 
     setProducts(filtered);
-  },[category,allProducts,sortBy]) 
+  },[category,allProducts,sortBy,session]) 
 
   return (
     <div>
@@ -162,14 +170,16 @@ export const getStaticProps = async () => {
       props: {
         initialProducts: data.products || [],
         fetchError: ''
-      }
+      },
+      revalidate: 60,
     }
   } catch (err: any) {
     return {
       props: {
         initialProducts: [],
         fetchError: err.message || 'Failed to fetch products'
-      }
+      },
+      revalidate: 60,
     }
   }
 }
